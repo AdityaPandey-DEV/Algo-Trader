@@ -7,7 +7,8 @@ export const CONFIG = {
 
     // Risk Management
     MAX_DRAWDOWN: 1.5,
-    MAX_DAILY_LOSS: 5000,
+    MAX_DAILY_LOSS: 5000, // ₹5,000 max loss per day
+    RISK_PER_TRADE: 0.01, // 1% of capital per trade
 
     // Regime Thresholds
     TSD_THRESHOLD_A: 3,

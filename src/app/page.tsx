@@ -25,6 +25,10 @@ interface TradingState {
   watchlist: string[];
   logs: string[];
   equity_history: Array<{ time: string; equity: number }>;
+  market_status?: 'OPEN' | 'CLOSED' | 'PRE_MARKET' | 'POST_MARKET';
+  market_message?: string;
+  data_source?: string;
+  dhan_configured?: boolean;
 }
 
 // Initial Mock State
@@ -111,6 +115,27 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-container">
+      {/* Market Status Banner */}
+      {data.market_status !== 'OPEN' && (
+        <div style={{
+          background: 'rgba(245, 158, 11, 0.1)',
+          border: '1px solid #f59e0b',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <span style={{ color: '#fbbf24', fontWeight: 700 }}>
+            ⏸️ MARKET {data.market_status || 'CLOSED'} - {data.market_message || 'Trading paused'}
+          </span>
+          <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
+            Data: {data.data_source || 'MOCK'}
+          </span>
+        </div>
+      )}
+
       <header>
         <div className="title-section">
           <h1><Shield size={32} /> AG_TRADER <span className="badge badge-long">{data.regime}</span></h1>
