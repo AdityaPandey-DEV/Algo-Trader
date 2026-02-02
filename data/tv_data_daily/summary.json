@@ -1,0 +1,87 @@
+{
+  "fetched_at": "2026-02-02T19:55:12.112676",
+  "interval": "daily",
+  "symbols": {
+    "RELIANCE": {
+      "total_candles": 5000,
+      "date_range": "2005-11-11 to 2026-02-02"
+    },
+    "TCS": {
+      "total_candles": 5000,
+      "date_range": "2005-11-10 to 2026-02-02"
+    },
+    "HDFCBANK": {
+      "total_candles": 5000,
+      "date_range": "2005-11-10 to 2026-02-02"
+    },
+    "INFY": {
+      "total_candles": 5000,
+      "date_range": "2005-11-10 to 2026-02-02"
+    },
+    "ICICIBANK": {
+      "total_candles": 5000,
+      "date_range": "2005-11-10 to 2026-02-02"
+    },
+    "SBIN": {
+      "total_candles": 5000,
+      "date_range": "2005-11-10 to 2026-02-02"
+    },
+    "BHARTIARTL": {
+      "total_candles": 5000,
+      "date_range": "2005-11-10 to 2026-02-02"
+    },
+    "ITC": {
+      "total_candles": 5000,
+      "date_range": "2005-11-10 to 2026-02-02"
+    },
+    "LT": {
+      "total_candles": 5000,
+      "date_range": "2005-11-10 to 2026-02-02"
+    },
+    "AXISBANK": {
+      "total_candles": 4759,
+      "date_range": "2006-11-02 to 2026-02-02"
+    },
+    "KOTAKBANK": {
+      "total_candles": 5000,
+      "date_range": "2005-11-10 to 2026-02-02"
+    },
+    "WIPRO": {
+      "total_candles": 5000,
+      "date_range": "2005-11-10 to 2026-02-02"
+    },
+    "MARUTI": {
+      "total_candles": 5000,
+      "date_range": "2005-11-10 to 2026-02-02"
+    },
+    "TITAN": {
+      "total_candles": 5000,
+      "date_range": "2005-11-10 to 2026-02-02"
+    },
+    "SUNPHARMA": {
+      "total_candles": 5000,
+      "date_range": "2005-11-10 to 2026-02-02"
+    },
+    "BAJFINANCE": {
+      "total_candles": 5000,
+      "date_range": "2005-11-11 to 2026-02-02"
+    },
+    "NESTLEIND": {
+      "total_candles": 3978,
+      "date_range": "2010-01-08 to 2026-02-02"
+    },
+    "TATASTEEL": {
+      "total_candles": 5000,
+      "date_range": "2005-11-10 to 2026-02-02"
+    },
+    "POWERGRID": {
+      "total_candles": 4529,
+      "date_range": "2007-10-05 to 2026-02-02"
+    },
+    "ADANIENT": {
+      "total_candles": 4785,
+      "date_range": "2006-09-20 to 2026-02-02"
+    }
+  },
+  "total_candles": 98051
+}

@@ -598,3 +598,259 @@ export function getOrderSummary(): {
         rejected: orders.filter(o => o.status === 'REJECTED').length
     };
 }
+
+// ============================================
+// Historical Data API
+// ============================================
+
+/**
+ * OHLCV Candle
+ */
+export interface DhanOHLCV {
+    symbol: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+    timestamp: Date;
+}
+
+/**
+ * Dhan Chart Resolution
+ * For intraday: 1, 5, 15, 25, 60 (minutes)
+ * For daily+: D, W, M
+ */
+type ChartResolution = '1' | '5' | '15' | '25' | '60' | 'D' | 'W' | 'M';
+
+/**
+ * Format date to YYYY-MM-DD
+ */
+function formatDate(date: Date): string {
+    return date.toISOString().split('T')[0];
+}
+
+/**
+ * Fetch historical daily data from Dhan
+ * Available for up to 5 years
+ */
+export async function fetchDhanDailyHistory(
+    symbol: string,
+    days: number = 365
+): Promise<DhanOHLCV[]> {
+    const securityId = getSecurityId(symbol);
+
+    if (!securityId) {
+        console.error(`Unknown symbol: ${symbol}`);
+        return [];
+    }
+
+    if (!isDhanConfigured()) {
+        console.log(`Dhan not configured, returning empty data for ${symbol}`);
+        return [];
+    }
+
+    const toDate = new Date();
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - days);
+
+    try {
+        const response = await fetch(`${DHAN_BASE_URL}/v2/charts/historical`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+                securityId: securityId,
+                exchangeSegment: 'NSE_EQ',
+                instrument: 'EQUITY',
+                expiryCode: 0,
+                fromDate: formatDate(fromDate),
+                toDate: formatDate(toDate)
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Dhan historical error for ${symbol}: ${response.status}`, errorText);
+            return [];
+        }
+
+        const data = await response.json();
+        console.log(`Dhan daily response for ${symbol}:`, JSON.stringify(data).slice(0, 500));
+
+        // Handle different response formats
+        const candleData = data.data || data.candles || data;
+        if (!candleData || !Array.isArray(candleData)) {
+            console.error(`Invalid response for ${symbol}:`, data);
+            return [];
+        }
+
+        // Dhan returns: [timestamp, open, high, low, close, volume]
+        const candles: DhanOHLCV[] = data.data.map((row: number[]) => ({
+            symbol,
+            timestamp: new Date(row[0] * 1000),
+            open: row[1],
+            high: row[2],
+            low: row[3],
+            close: row[4],
+            volume: row[5] || 0
+        }));
+
+        console.log(`Fetched ${candles.length} daily candles for ${symbol} from Dhan`);
+        return candles;
+
+    } catch (error) {
+        console.error(`Dhan historical error for ${symbol}:`, error);
+        return [];
+    }
+}
+
+/**
+ * Fetch historical intraday data from Dhan
+ * Available for up to 1 month (5-minute candles)
+ */
+export async function fetchDhanIntradayHistory(
+    symbol: string,
+    days: number = 30,
+    resolution: '1' | '5' | '15' | '25' | '60' = '5'
+): Promise<DhanOHLCV[][]> {
+    const securityId = getSecurityId(symbol);
+
+    if (!securityId) {
+        console.error(`Unknown symbol: ${symbol}`);
+        return [];
+    }
+
+    if (!isDhanConfigured()) {
+        console.log(`Dhan not configured, returning empty data for ${symbol}`);
+        return [];
+    }
+
+    // Dhan limits intraday to 30 days
+    const actualDays = Math.min(days, 30);
+    const toDate = new Date();
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - actualDays);
+
+    try {
+        const response = await fetch(`${DHAN_BASE_URL}/v2/charts/intraday`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+                securityId: securityId,
+                exchangeSegment: 'NSE_EQ',
+                instrument: 'EQUITY',
+                interval: resolution,
+                fromDate: formatDate(fromDate),
+                toDate: formatDate(toDate)
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Dhan intraday error for ${symbol}: ${response.status}`, errorText);
+            return [];
+        }
+
+        const data = await response.json();
+        console.log(`Dhan intraday response for ${symbol}:`, JSON.stringify(data).slice(0, 500));
+
+        // Handle different response formats
+        const candleData = data.data || data.candles || data;
+        if (!candleData || !Array.isArray(candleData)) {
+            console.error(`Invalid intraday response for ${symbol}:`, data);
+            return [];
+        }
+
+        // Group candles by day
+        const dayMap: Map<string, DhanOHLCV[]> = new Map();
+
+        for (const row of data.data) {
+            const timestamp = new Date(row[0] * 1000);
+            const dayKey = formatDate(timestamp);
+
+            if (!dayMap.has(dayKey)) {
+                dayMap.set(dayKey, []);
+            }
+
+            dayMap.get(dayKey)!.push({
+                symbol,
+                timestamp,
+                open: row[1],
+                high: row[2],
+                low: row[3],
+                close: row[4],
+                volume: row[5] || 0
+            });
+        }
+
+        // Convert to array of days, filter incomplete days
+        const allDays = Array.from(dayMap.values())
+            .filter(day => day.length >= 10)  // At least 10 candles per day
+            .sort((a, b) => a[0].timestamp.getTime() - b[0].timestamp.getTime());
+
+        console.log(`Fetched ${allDays.length} intraday sessions for ${symbol} from Dhan (${resolution}m)`);
+        return allDays;
+
+    } catch (error) {
+        console.error(`Dhan intraday error for ${symbol}:`, error);
+        return [];
+    }
+}
+
+/**
+ * Fetch historical data for backtesting (best available)
+ * Tries intraday first, falls back to daily
+ */
+export async function fetchDhanHistoricalForBacktest(
+    symbol: string,
+    days: number = 60
+): Promise<{ daily: DhanOHLCV[]; intraday: DhanOHLCV[][] }> {
+    // Fetch both daily and intraday
+    const dailyPromise = fetchDhanDailyHistory(symbol, Math.max(days, 100));
+    const intradayPromise = fetchDhanIntradayHistory(symbol, Math.min(days, 30), '5');
+
+    const [daily, intraday] = await Promise.all([dailyPromise, intradayPromise]);
+
+    return { daily, intraday };
+}
+
+/**
+ * Get list of available symbols with their security IDs
+ */
+export function getAvailableSymbols(): { symbol: string; securityId: string }[] {
+    return Object.entries(SYMBOL_MAP).map(([symbol, securityId]) => ({
+        symbol,
+        securityId
+    }));
+}
+
+/**
+ * Check if Dhan historical data is available
+ */
+export async function checkDhanHistoricalAccess(): Promise<{
+    configured: boolean;
+    dailyAvailable: boolean;
+    intradayAvailable: boolean;
+    symbolCount: number;
+}> {
+    if (!isDhanConfigured()) {
+        return {
+            configured: false,
+            dailyAvailable: false,
+            intradayAvailable: false,
+            symbolCount: Object.keys(SYMBOL_MAP).length
+        };
+    }
+
+    // Test with a single symbol
+    const testSymbol = 'RELIANCE';
+    const daily = await fetchDhanDailyHistory(testSymbol, 5);
+    const intraday = await fetchDhanIntradayHistory(testSymbol, 3, '5');
+
+    return {
+        configured: true,
+        dailyAvailable: daily.length > 0,
+        intradayAvailable: intraday.length > 0,
+        symbolCount: Object.keys(SYMBOL_MAP).length
+    };
+}

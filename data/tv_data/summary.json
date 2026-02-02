@@ -1,0 +1,107 @@
+{
+  "fetched_at": "2026-02-02T19:54:11.733916",
+  "symbols": {
+    "RELIANCE": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "TCS": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "HDFCBANK": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "INFY": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "ICICIBANK": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "SBIN": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "BHARTIARTL": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "ITC": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "LT": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "AXISBANK": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "KOTAKBANK": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "WIPRO": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "MARUTI": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "TITAN": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "SUNPHARMA": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "BAJFINANCE": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "NESTLEIND": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "TATASTEEL": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "POWERGRID": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    },
+    "ADANIENT": {
+      "total_candles": 5100,
+      "days": 68,
+      "date_range": "2025-10-27 to 2026-02-02"
+    }
+  },
+  "total_candles": 102000,
+  "total_days": 1360
+}
