@@ -52,8 +52,8 @@ export async function handleUpstoxCallback(code: string): Promise<string> {
 
         if (json.access_token) {
             accessToken = json.access_token;
-            console.log('✅ Upstox Login Successful. Token:', accessToken.substring(0, 10) + '...');
-            return accessToken;
+            console.log('✅ Upstox Login Successful. Token:', accessToken!.substring(0, 10) + '...');
+            return accessToken!;
         } else {
             throw new Error('No access_token in response');
         }

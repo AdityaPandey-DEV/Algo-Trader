@@ -27,8 +27,9 @@ export async function GET() {
         const now = Date.now();
         if (now - lastBalanceFetch > BALANCE_CACHE_MS || cachedBalance === 0) {
             try {
-                const realBalance = await getBalance();
-                if (realBalance > 0) {
+                const balanceResult = await getBalance();
+                const realBalance = balanceResult?.available ?? null;
+                if (realBalance !== null && realBalance > 0) {
                     cachedBalance = realBalance;
                     lastBalanceFetch = now;
                     // Update state with real balance

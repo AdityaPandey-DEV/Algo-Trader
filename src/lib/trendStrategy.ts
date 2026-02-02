@@ -21,6 +21,10 @@ export interface TrendSignal {
     stop: number;
     target: number;
     pullbackDepth: number;
+    // Entry confirmation levels (Upgrade #4)
+    pullbackHigh: number;    // For LONG: must break above this
+    pullbackLow: number;     // For SHORT: must break below this
+    confirmed: boolean;      // True if entry is confirmed
 }
 
 export type Trend = 'UPTREND' | 'DOWNTREND' | 'NEUTRAL';
@@ -143,7 +147,10 @@ export function generateTrendSignal(
         entry: 0,
         stop: 0,
         target: 0,
-        pullbackDepth: 0
+        pullbackDepth: 0,
+        pullbackHigh: 0,
+        pullbackLow: 0,
+        confirmed: false
     };
 
     if (candles.length < config.emaSlow + 10) return nullSignal;
@@ -158,13 +165,21 @@ export function generateTrendSignal(
 
     // Step 3: Confirmation candle (optional but helps)
     const lastCandle = candles[candles.length - 1];
+    const prevCandle = candles[candles.length - 2];
     const atr = getCurrentATR(candles, 14);
+
+    // Get pullback reference points for entry confirmation (Upgrade #4)
+    const pullbackHigh = findRecentSwingHigh(candles.slice(0, -1), 5);  // High of pullback (excluding current)
+    const pullbackLow = findRecentSwingLow(candles.slice(0, -1), 5);   // Low of pullback (excluding current)
 
     if (trend === 'UPTREND') {
         // Want bullish candle to confirm reversal of pullback
         if (!isBullishCandle(lastCandle)) {
-            return { ...nullSignal, trend, pullbackDepth: depth };
+            return { ...nullSignal, trend, pullbackDepth: depth, pullbackHigh, pullbackLow };
         }
+
+        // ENTRY CONFIRMATION (Upgrade #4): Price must break above pullback high
+        const isConfirmed = lastCandle.close > pullbackHigh;
 
         const swingLow = findRecentSwingLow(candles, 10);
         const swingHigh = findRecentSwingHigh(candles, 15);
@@ -174,16 +189,22 @@ export function generateTrendSignal(
             trend,
             entry: lastCandle.close,
             stop: swingLow - atr * 1.0,    // WIDER stop
-            target: swingHigh + atr * 0.3, // TIGHTER target
-            pullbackDepth: depth
+            target: swingHigh + atr * 0.3, // TIGHTER target (but we use trailing stop now)
+            pullbackDepth: depth,
+            pullbackHigh,
+            pullbackLow,
+            confirmed: isConfirmed
         };
     }
 
     if (trend === 'DOWNTREND') {
         // Want bearish candle to confirm reversal of pullback
         if (!isBearishCandle(lastCandle)) {
-            return { ...nullSignal, trend, pullbackDepth: depth };
+            return { ...nullSignal, trend, pullbackDepth: depth, pullbackHigh, pullbackLow };
         }
+
+        // ENTRY CONFIRMATION (Upgrade #4): Price must break below pullback low
+        const isConfirmed = lastCandle.close < pullbackLow;
 
         const swingHigh = findRecentSwingHigh(candles, 10);
         const swingLow = findRecentSwingLow(candles, 15);
@@ -193,8 +214,11 @@ export function generateTrendSignal(
             trend,
             entry: lastCandle.close,
             stop: swingHigh + atr * 1.0,   // WIDER stop
-            target: swingLow - atr * 0.3,  // TIGHTER target
-            pullbackDepth: depth
+            target: swingLow - atr * 0.3,  // TIGHTER target (but we use trailing stop now)
+            pullbackDepth: depth,
+            pullbackHigh,
+            pullbackLow,
+            confirmed: isConfirmed
         };
     }
 

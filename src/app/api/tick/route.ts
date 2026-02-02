@@ -5,7 +5,7 @@ import { generateMockData, getPriorData, updatePriorData, calculateLevels } from
 import { calculatePlannedTrade, generateSignal } from '@/lib/strategy';
 import { CONFIG } from '@/lib/config';
 import { isMarketOpen, getMarketInfo } from '@/lib/marketHours';
-import { fetchQuotes, isDhanConfigured, placeOrder, shouldAutoSquareOff, squareOffAll, getFundLimits } from '@/lib/dhanApi';
+import { fetchQuotes, isDhanConfigured, placeOrder, shouldAutoSquareOff, squareOffAll } from '@/lib/dhanApi';
 import {
     getTSDEngineState,
     updateTSDCount,
@@ -28,6 +28,27 @@ import {
 } from '@/lib/storage';
 import { exportState as exportRegimeState, importState as importRegimeState } from '@/lib/regimeEngine';
 import { isAIConfigured, getCachedAnalysis, resolveConflict } from '@/lib/aiEngine';
+
+// Professional Risk Engine (Upgrades #1, #6, #8)
+import {
+    initRiskEngine,
+    canTrade as checkRiskLimits,
+    recordTrade as recordTradeRisk,
+    getRiskSummary,
+    calculatePositionSize as calcRiskPositionSize,
+    RISK_CONFIG
+} from '@/lib/riskEngine';
+
+// Trade Quality Filters (Upgrades #2, #3, #7)
+import { runPreTradeChecks } from '@/lib/tradeFilters';
+
+// Smart Trailing Stop (Upgrade #5)
+import {
+    initTrailingPosition,
+    updateTrailingStop,
+    getActiveTrailingPositions,
+    closeTrailingPosition
+} from '@/lib/trailingStop';
 
 // Historical data cache for indicator calculations
 const historicalData: Record<string, OHLCV[]> = {};
@@ -78,6 +99,20 @@ export async function POST() {
         const marketOpen = isMarketOpen();
         const dhanConfigured = isDhanConfigured();
         const tsdState = getTSDEngineState();
+
+        // Initialize risk engine with current equity (Upgrades #1, #6)
+        initRiskEngine(state.initial_capital + state.pnl);
+
+        // Check if risk engine allows trading
+        const riskCheck = checkRiskLimits();
+        if (!riskCheck.allowed) {
+            addLog(`🛑 RISK: ${riskCheck.reason}`);
+            return NextResponse.json({
+                status: 'risk_blocked',
+                message: riskCheck.reason,
+                risk_summary: getRiskSummary()
+            });
+        }
 
         // Auto square-off check (3:15 PM for intraday)
         if (marketOpen && shouldAutoSquareOff()) {
@@ -200,10 +235,29 @@ export async function POST() {
 
             // Check for actionable signals (only during market hours with real data)
             if (marketOpen && (dataSource.includes('DHAN') || dataSource.includes('UPSTOX')) && regimePermissions.allowMeanReversion) {
+                // Run pre-trade quality filters (Upgrades #2, #3, #7)
+                const symbolCandles = historicalData[symbol] || [];
+                const preTradeCheck = runPreTradeChecks(symbolCandles);
+
+                if (!preTradeCheck.canTrade) {
+                    // Skip this symbol - quality filters failed
+                    continue;
+                }
+
                 const signal = generateSignal(data, priorData, levels.support, levels.resistance, regimeResult.newRegime);
                 if (signal) {
+                    // Quality score verified above (preTradeCheck.qualityScore)
                     signals.push(signal);
                 }
+            }
+
+            // Update trailing stops for active positions (Upgrade #5)
+            const trailingResult = updateTrailingStop(symbol, historicalData[symbol] || []);
+            if (trailingResult.stopped) {
+                addLog(`🎯 TRAIL EXIT ${symbol}: PnL ₹${trailingResult.pnl.toFixed(2)}`);
+                // Record trade in risk engine
+                const rMultiple = trailingResult.pnl / (state.initial_capital * RISK_CONFIG.MAX_RISK_PER_TRADE);
+                recordTradeRisk(trailingResult.pnl, rMultiple);
             }
         }
 
