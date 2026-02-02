@@ -129,10 +129,12 @@ export default function Dashboard() {
             onClick={togglePaperMode}
             style={{
               backgroundColor: data.paper_mode ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+              borderWidth: '1px',
+              borderStyle: 'solid',
               borderColor: data.paper_mode ? '#10b981' : '#334155',
               color: data.paper_mode ? '#10b981' : '#94a3b8',
               display: 'flex', alignItems: 'center', gap: '8px',
-              padding: '8px 16px', borderRadius: '8px', border: '1px solid', cursor: 'pointer'
+              padding: '8px 16px', borderRadius: '8px', cursor: 'pointer'
             }}
           >
             <MousePointer2 size={16} />
