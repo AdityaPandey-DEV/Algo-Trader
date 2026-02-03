@@ -14,11 +14,13 @@ export const CONFIG = {
     TSD_THRESHOLD_A: 3,
     TSD_THRESHOLD_B: 7,
 
-    // Watchlist (Top NSE Stocks)
+    // Watchlist (Top NSE Stocks + ETFs)
     WATCHLIST: [
         "RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK",
         "SBIN", "AXISBANK", "BHARTIARTL", "ITC", "LT",
         "KOTAKBANK", "WIPRO", "MARUTI", "TITAN", "SUNPHARMA",
-        "BAJFINANCE", "NESTLEIND", "ADANIENT", "TATASTEEL", "POWERGRID"
+        "BAJFINANCE", "NESTLEIND", "ADANIENT", "TATASTEEL", "POWERGRID",
+        // ETFs for V2 Swing Engine
+        "GOLDBEES", "SILVERBEES", "NIFTYBEES", "BANKBEES", "LIQUIDBEES"
     ]
 };
