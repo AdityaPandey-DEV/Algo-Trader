@@ -1,26 +1,33 @@
 /**
  * Upstash Redis Client for token persistence
- * Environment variables required:
- * - UPSTASH_REDIS_REST_URL
- * - UPSTASH_REDIS_REST_TOKEN
+ * Environment variables (Vercel automatically sets these when you add Upstash integration):
+ * - UPSTASH_REDIS_REST_URL or KV_REST_API_URL
+ * - UPSTASH_REDIS_REST_TOKEN or KV_REST_API_TOKEN
  */
 
 import { Redis } from '@upstash/redis';
 
 // Create Redis client (lazy initialization)
 let redis: Redis | null = null;
+let redisInitAttempted = false;
 
 function getRedis(): Redis | null {
     if (redis) return redis;
+    if (redisInitAttempted) return null; // Don't retry if already failed
 
-    const url = process.env.UPSTASH_REDIS_REST_URL;
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+    redisInitAttempted = true;
+
+    // Check for multiple possible env var names (Vercel uses different names)
+    const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 
     if (!url || !token) {
-        console.warn('⚠️ Upstash Redis not configured. Token will not persist across cold starts.');
+        console.warn('⚠️ Redis not configured. Available env vars:',
+            Object.keys(process.env).filter(k => k.includes('REDIS') || k.includes('KV') || k.includes('UPSTASH')).join(', ') || 'NONE');
         return null;
     }
 
+    console.log('🔗 Initializing Redis connection...');
     redis = new Redis({ url, token });
     return redis;
 }
