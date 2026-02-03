@@ -39,9 +39,31 @@ export async function GET() {
         const dhanConfigured = isDhanConfigured();
         let dhanBalance = null;
         let dhanError = null;
+        let dhanRawResponse = null;
 
         if (dhanConfigured) {
             try {
+                // Make a direct API call to see the raw response
+                const dhanUrl = 'https://api.dhan.co/v2/fundlimit';
+                const dhanHeaders = {
+                    'access-token': process.env.DHAN_ACCESS_TOKEN || '',
+                    'client-id': process.env.DHAN_CLIENT_ID || '',
+                    'Content-Type': 'application/json'
+                };
+
+                const rawResponse = await fetch(dhanUrl, {
+                    method: 'GET',
+                    headers: dhanHeaders
+                });
+
+                const rawText = await rawResponse.text();
+                dhanRawResponse = {
+                    status: rawResponse.status,
+                    statusText: rawResponse.statusText,
+                    body: rawText.substring(0, 500)
+                };
+
+                // Also get via wrapper function
                 dhanBalance = await getDhanBalance();
             } catch (e) {
                 dhanError = String(e);
@@ -55,6 +77,7 @@ export async function GET() {
                 clientIdSet: process.env.DHAN_CLIENT_ID ? '✅ Set' : '❌ Not set',
                 accessTokenSet: process.env.DHAN_ACCESS_TOKEN ? '✅ Set' : '❌ Not set',
                 balance: dhanBalance,
+                rawResponse: dhanRawResponse,
                 error: dhanError
             },
             redis: {
