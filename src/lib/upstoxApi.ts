@@ -65,6 +65,13 @@ export async function handleUpstoxCallback(code: string): Promise<string> {
 }
 
 /**
+ * Check if we have a valid Upstox session
+ */
+export function isUpstoxAuthenticated(): boolean {
+    return accessToken !== null;
+}
+
+/**
  * Fetch LTP for a list of symbols
  */
 export async function fetchUpstoxQuotes(symbols: string[]) {
@@ -137,7 +144,8 @@ export async function fetchUpstoxFullQuotes(symbols: string[]) {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
                 'Accept': 'application/json'
-            }
+            },
+            signal: AbortSignal.timeout(5000) // 5 second timeout to prevent hanging the server
         });
 
         const json = await response.json();

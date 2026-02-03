@@ -29,6 +29,7 @@ interface TradingState {
   market_message?: string;
   data_source?: string;
   dhan_configured?: boolean;
+  quotes?: Record<string, { close: number; change: number; changePercent: number }>;
 }
 
 // Initial Mock State
@@ -116,131 +117,94 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-container">
-      {/* Market Status Banner - Only in LIVE mode */}
-      {showMarketBanner && !data.paper_mode && (
-        <div style={{
-          background: data.market_status === 'OPEN' ? '#10b981' : '#ef4444',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          marginBottom: '1rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <span style={{ color: '#fff', fontWeight: 700 }}>
-            {data.market_status === 'OPEN' ? '🟢 MARKET OPEN' : '🔴 MARKET CLOSED'} — {data.data_source || 'MOCK'}
-          </span>
-          <button
-            onClick={() => setShowMarketBanner(false)}
-            style={{
-              background: 'rgba(255,255,255,0.2)',
-              border: 'none',
-              color: '#fff',
-              padding: '4px 10px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 700
-            }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      <header>
-        <div className="title-section">
-          <h1><Shield size={32} /> Algo Trader <span className="badge badge-long">{data.regime}</span></h1>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          {data.paper_mode && (
-            <div className="glass-card" style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #334155' }}>
-              <Coins size={16} color="#fbbf24" />
-              <input
-                type="number"
-                placeholder={`₹${data.initial_capital}`}
-                value={capitalInput}
-                onChange={(e) => setCapitalInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && updateCapital()}
-                style={{ background: 'transparent', border: 'none', color: '#fff', width: '90px', fontSize: '0.85rem', outline: 'none' }}
-              />
-              <button onClick={updateCapital} style={{ background: 'rgba(99, 102, 241, 0.2)', border: '1px solid #6366f1', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}>
-                <TrendingUp size={14} color="#6366f1" />
-              </button>
-            </div>
-          )}
-
-          {/* Paper/Live Mode Toggle - Always enabled */}
-          <button
-            onClick={togglePaperMode}
-            style={{
-              backgroundColor: data.paper_mode ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-              borderWidth: '1px',
-              borderStyle: 'solid',
-              borderColor: data.paper_mode ? '#10b981' : '#ef4444',
-              color: data.paper_mode ? '#10b981' : '#ef4444',
-              display: 'flex', alignItems: 'center', gap: '8px',
-              padding: '8px 16px', borderRadius: '8px',
-              cursor: 'pointer'
-            }}
-          >
-            <MousePointer2 size={16} />
-            {data.paper_mode ? 'PAPER MODE' : '🔥 LIVE MODE'}
-          </button>
-
-          <button
-            className={`primary ${data.kill_switch ? 'danger' : ''}`}
-            onClick={toggleKillSwitch}
-            style={{ backgroundColor: data.kill_switch ? '#ef4444' : '#6366f1', border: 'none' }}
-          >
-            <Power size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-            {data.kill_switch ? 'SYSTEM STOPPED' : 'SYSTEM ARMED'}
-          </button>
-
-          <div className="live-tag">
-            <span className="pulse"></span> LIVE: {data.current_symbol} {new Date().toLocaleTimeString()}
+      {/* 1. PORTFOLIO HEALTH HEADER */}
+      <header className="portfolio-header">
+        <div className="header-left">
+          <h1><Shield size={28} className="icon-shield" /> Algo Trader <span className="text-muted">Pro</span></h1>
+          <div className="regime-badge">
+            <span className="label">MARKET REGIME</span>
+            <span className={`value ${data.regime === 'TRENDING' ? 'trend' : 'chop'}`}>
+              {data.regime.replace('_', ' ')}
+            </span>
           </div>
+        </div>
+
+        <div className="header-right">
+          <div className="status-pill live">
+            <span className="dot"></span> {data.market_status === 'OPEN' ? 'MARKET OPEN' : 'MARKET CLOSED'}
+          </div>
+          <button className="mode-toggle" onClick={togglePaperMode}>
+            {data.paper_mode ? '📝 PAPER TRADING' : '🔥 LIVE EXECUTION'}
+          </button>
         </div>
       </header>
 
-      <div className="stats-grid">
-        <div className="glass-card">
-          <p className="stat-label">Daily Net PnL</p>
-          <p className="stat-value" style={{ color: pnlColor }}>
-            ₹{data.pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </p>
-        </div>
-        <div className="glass-card">
-          <p className="stat-label">Risk Consumed</p>
-          <p className="stat-value">
-            {data.risk_consumed.toFixed(2)}% <span style={{ fontSize: '0.8rem', color: '#64748b' }}>/ {data.max_drawdown}%</span>
-          </p>
-          <div style={{ width: '100%', height: '4px', background: '#1e293b', marginTop: '10px', borderRadius: '2px' }}>
-            <div style={{ width: `${(data.risk_consumed / data.max_drawdown) * 100}%`, height: '100%', background: 'var(--primary)', borderRadius: '2px' }}></div>
+      {/* 2. CAPITAL ALLOCATION BAR */}
+      <section className="allocation-section">
+        <div className="allocation-bar">
+          <div className="segment swing" style={{ width: '70%' }}>
+            <span>V2 SWING ENGINE (70%)</span>
+          </div>
+          <div className="segment intraday" style={{ width: '30%' }}>
+            <span>V3 INTRADAY (30%)</span>
           </div>
         </div>
-        <div className="glass-card">
-          <p className="stat-label">Market Regime</p>
-          <p className="stat-value" style={{ borderBottom: `2px solid var(--primary)`, display: 'inline-block' }}>
-            {data.regime.replace('_', ' ')}
-          </p>
-          <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '8px' }}>TSD Count: {data.tsd_count} Days</p>
+      </section>
+
+      {/* 3. ENGINE GRID */}
+      <div className="engine-grid">
+        {/* V2 SWING ENGINE */}
+        <div className="engine-card swing-card">
+          <div className="card-header">
+            <h3><TrendingUp size={20} /> V2 SWING ENGINE</h3>
+            <span className="badge">WEALTH</span>
+          </div>
+          <div className="card-metrics">
+            <div className="metric">
+              <span className="label">Allocation</span>
+              <span className="value">₹{(data.initial_capital * 0.7).toLocaleString()}</span>
+            </div>
+            <div className="metric">
+              <span className="label">Status</span>
+              <span className="value status-active">ACTIVE</span>
+            </div>
+            <div className="metric">
+              <span className="label">Open Risk</span>
+              <span className="value text-neutral">0.00%</span>
+            </div>
+          </div>
         </div>
-        <div className="glass-card">
-          <p className="stat-label">Execution Engine</p>
-          <p className="stat-value" style={{ color: data.paper_mode ? '#94a3b8' : '#fbbf24' }}>
-            {data.paper_mode ? 'PAPER (MOCK)' : 'DHAN LIVE'}
-          </p>
-          <p style={{ fontSize: '0.7rem', color: '#10b981', marginTop: '8px' }}>● Connected</p>
+
+        {/* V3 INTRADAY ENGINE */}
+        <div className="engine-card intraday-card">
+          <div className="card-header">
+            <h3><Shield size={20} /> V3 INTRADAY ENGINE</h3>
+            <span className="badge">SAFETY</span>
+          </div>
+          <div className="card-metrics">
+            <div className="metric">
+              <span className="label">Allocation</span>
+              <span className="value">₹{(data.initial_capital * 0.3).toLocaleString()}</span>
+            </div>
+            <div className="metric">
+              <span className="label">Risk Consumed</span>
+              <span className="value">{data.risk_consumed.toFixed(2)}% <span className="sub">/ {data.max_drawdown}%</span></span>
+            </div>
+            <div className="metric">
+              <span className="label">Daily P&L</span>
+              <span className="value" style={{ color: pnlColor }}>₹{data.pnl.toLocaleString()}</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <main className="main-layout">
         <div className="center-panel">
+          {/* EQUITY CURVE */}
           <div className="glass-card">
-            <h3 className="stat-label"><BarChart3 size={16} style={{ marginBottom: '-3px', marginRight: '8px' }} /> Session Equity Curve</h3>
+            <h3 className="section-title"><BarChart3 size={18} /> Portfolio Equity Curve</h3>
             <div className="chart-container">
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={250}>
                 <AreaChart data={data.equity_history && data.equity_history.length > 0 ? data.equity_history : [{ time: 'Now', equity: data.initial_capital }]}>
                   <defs>
                     <linearGradient id="colorEquity" x1="0" y1="0" x2="0" y2="1">
@@ -249,84 +213,89 @@ export default function Dashboard() {
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="time" hide={true} />
-                  <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '4px' }} itemStyle={{ color: '#fff' }} />
+                  <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #1e293b' }} itemStyle={{ color: '#fff' }} />
                   <Area type="monotone" dataKey="equity" stroke="#6366f1" fillOpacity={1} fill="url(#colorEquity)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="glass-card">
-            <h3 className="stat-label"><Briefcase size={16} style={{ marginBottom: '-3px', marginRight: '8px' }} /> Active Positions</h3>
+          {/* COMBINED POSITIONS */}
+          <div className="glass-card mt-4">
+            <h3 className="section-title"><Briefcase size={18} /> Active Portfolio Positions</h3>
             <table className="position-table">
-              <thead><tr><th>Symbol</th><th>Side</th><th>Entry</th><th>LTP</th><th>Qty</th><th>PnL</th></tr></thead>
+              <thead><tr><th>Engine</th><th>Symbol</th><th>Side</th><th>Entry</th><th>LTP</th><th>PnL</th></tr></thead>
               <tbody>
                 {data.positions?.map((pos, i) => (
                   <tr key={i}>
-                    <td style={{ fontWeight: 700 }}>{pos.symbol}</td>
+                    <td><span className="badge-engine">V3 INT</span></td>
+                    <td className="font-bold">{pos.symbol}</td>
                     <td><span className={`badge ${pos.side === 'SHORT' ? 'badge-short' : 'badge-long'}`}>{pos.side}</span></td>
                     <td>{pos.entry.toFixed(2)}</td>
                     <td>{pos.current.toFixed(2)}</td>
-                    <td>{pos.qty}</td>
-                    <td style={{ color: pos.pnl >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>₹{pos.pnl.toFixed(2)}</td>
+                    <td style={{ color: pos.pnl >= 0 ? '#10b981' : '#ef4444' }} className="font-bold">₹{pos.pnl.toFixed(2)}</td>
                   </tr>
                 ))}
                 {(!data.positions || data.positions.length === 0) && (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', color: '#64748b', padding: '2rem' }}>No active positions</td></tr>
+                  <tr><td colSpan={6} className="text-center text-muted p-4">No active positions across engines</td></tr>
                 )}
               </tbody>
             </table>
           </div>
 
-          {/* Strategic Trade Planning */}
-          <div className="glass-card" style={{ marginTop: '1.5rem' }}>
-            <h3 className="stat-label"><Zap size={16} style={{ marginBottom: '-3px', marginRight: '8px' }} /> Strategic Trade Planning</h3>
+          {/* RESTORED: STRATEGIC PLANNING (V3 Opportunity Map) */}
+          <div className="glass-card mt-4">
+            <h3 className="section-title"><Zap size={18} /> V3 Intraday Scanners</h3>
             <div className="split-tables">
-              {/* LONG SETUPS */}
+              {/* LONG */}
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <TrendingUp size={12} /> BULLISH SETUPS (LONG)
+                <p style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <TrendingUp size={14} /> BULLISH ZONES
                 </p>
-                <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #1e293b', borderRadius: '4px' }}>
-                  <table className="position-table">
+                <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid var(--glass-border)', borderRadius: '6px', background: 'rgba(0,0,0,0.2)' }}>
+                  <table className="position-table" style={{ margin: 0 }}>
                     <thead style={{ position: 'sticky', top: 0, background: '#0f172a', zIndex: 1 }}>
-                      <tr><th>Symbol</th><th>LTP</th><th>Entry</th><th>Target</th><th>SL</th></tr>
+                      <tr><th>Symbol</th><th>LTP</th><th>Trigger</th><th>Target</th></tr>
                     </thead>
                     <tbody>
-                      {data.planned_trades?.filter((t: any) => t.side === 'LONG').slice(0, 10).map((trade: any, i: number) => (
-                        <tr key={`${trade.symbol}-LONG-${i}`}>
-                          <td style={{ fontWeight: 700 }}>{trade.symbol}</td>
-                          <td style={{ color: '#94a3b8' }}>₹{trade.current?.toFixed(2) || '--'}</td>
-                          <td style={{ color: '#10b981', fontWeight: 600 }}>₹{trade.entry}</td>
-                          <td style={{ color: '#34d399', fontSize: '0.75rem' }}>{trade.target}</td>
-                          <td style={{ color: '#f87171', fontSize: '0.75rem' }}>{trade.stop}</td>
-                        </tr>
-                      ))}
+                      {data.planned_trades?.filter((t: any) => t.side === 'LONG').length > 0 ? (
+                        data.planned_trades?.filter((t: any) => t.side === 'LONG').map((trade: any, i: number) => (
+                          <tr key={`${trade.symbol}-LONG-${i}`}>
+                            <td className="font-bold">{trade.symbol}</td>
+                            <td className="text-muted">₹{trade.current?.toFixed(2) || '--'}</td>
+                            <td style={{ color: '#10b981', fontWeight: 600 }}>₹{trade.entry}</td>
+                            <td style={{ color: '#34d399', fontSize: '0.75rem' }}>{trade.target}</td>
+                          </tr>
+                        ))) : (
+                        <tr><td colSpan={4} className="text-center text-muted" style={{ padding: '2rem' }}>No bullish setups detected</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              {/* SHORT SETUPS */}
+              {/* SHORT */}
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <TrendingUp size={12} style={{ transform: 'rotate(90deg)' }} /> BEARISH SETUPS (SHORT)
+                <p style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <TrendingUp size={14} style={{ transform: 'rotate(90deg)' }} /> BEARISH ZONES
                 </p>
-                <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #1e293b', borderRadius: '4px' }}>
-                  <table className="position-table">
+                <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid var(--glass-border)', borderRadius: '6px', background: 'rgba(0,0,0,0.2)' }}>
+                  <table className="position-table" style={{ margin: 0 }}>
                     <thead style={{ position: 'sticky', top: 0, background: '#0f172a', zIndex: 1 }}>
-                      <tr><th>Symbol</th><th>LTP</th><th>Entry</th><th>Target</th><th>SL</th></tr>
+                      <tr><th>Symbol</th><th>LTP</th><th>Trigger</th><th>Target</th></tr>
                     </thead>
                     <tbody>
-                      {data.planned_trades?.filter((t: any) => t.side === 'SHORT').slice(0, 10).map((trade: any, i: number) => (
-                        <tr key={`${trade.symbol}-SHORT-${i}`}>
-                          <td style={{ fontWeight: 700 }}>{trade.symbol}</td>
-                          <td style={{ color: '#94a3b8' }}>₹{trade.current?.toFixed(2) || '--'}</td>
-                          <td style={{ color: '#ef4444', fontWeight: 600 }}>₹{trade.entry}</td>
-                          <td style={{ color: '#34d399', fontSize: '0.75rem' }}>{trade.target}</td>
-                          <td style={{ color: '#f87171', fontSize: '0.75rem' }}>{trade.stop}</td>
-                        </tr>
-                      ))}
+                      {data.planned_trades?.filter((t: any) => t.side === 'SHORT').length > 0 ? (
+                        data.planned_trades?.filter((t: any) => t.side === 'SHORT').map((trade: any, i: number) => (
+                          <tr key={`${trade.symbol}-SHORT-${i}`}>
+                            <td className="font-bold">{trade.symbol}</td>
+                            <td className="text-muted">₹{trade.current?.toFixed(2) || '--'}</td>
+                            <td style={{ color: '#ef4444', fontWeight: 600 }}>₹{trade.entry}</td>
+                            <td style={{ color: '#34d399', fontSize: '0.75rem' }}>{trade.target}</td>
+                          </tr>
+                        ))) : (
+                        <tr><td colSpan={4} className="text-center text-muted" style={{ padding: '2rem' }}>No bearish setups detected</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -335,34 +304,59 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* SIDEBAR: LOGS & WATCHLIST */}
         <div className="side-panel">
           <div className="glass-card">
-            <h3 className="stat-label" style={{ marginBottom: '1rem' }}><Search size={16} style={{ marginBottom: '-3px', marginRight: '8px' }} /> Live Watchlist</h3>
-            <div className="watchlist-grid" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {data.watchlist?.map((symbol, i) => (
-                <div className="watchlist-item" key={i}>
-                  <div>
-                    <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>{symbol}</p>
-                    <p style={{ fontSize: '0.7rem', color: '#64748b' }}>Ready</p>
+            <h3 className="section-title"><Search size={18} /> Engine Watchlist</h3>
+            <div className="watchlist-grid" style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
+              {data.watchlist?.map((symbol, i) => {
+                const quote = data.quotes?.[symbol];
+                const isPositive = (quote?.change || 0) > 0;
+                return (
+                  <div className="watchlist-item" key={i}>
+                    <div>
+                      <p className="symbol-name">{symbol}</p>
+                      {quote ? (
+                        <p className="symbol-status" style={{ fontSize: '0.8rem' }}>
+                          <span style={{ color: '#fff', fontWeight: 600 }}>₹{quote.close.toFixed(2)}</span>
+                          <span style={{ marginLeft: '6px', color: isPositive ? '#10b981' : '#ef4444' }}>
+                            {isPositive ? '+' : ''}{quote.changePercent?.toFixed(2)}%
+                          </span>
+                        </p>
+                      ) : (
+                        <p className="symbol-status">Monitoring</p>
+                      )}
+                    </div>
+                    <span className="badge-engine">V3</span>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p className="badge badge-long">NSE</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
-          <div className="glass-card" style={{ marginTop: '1.5rem' }}>
-            <h3 className="stat-label"><Database size={16} style={{ marginBottom: '-3px', marginRight: '8px' }} /> System Logs</h3>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontFamily: 'monospace', maxHeight: '180px', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div className="glass-card mt-4">
+            <h3 className="section-title"><Database size={18} /> System Logs</h3>
+            <div className="logs-container" style={{ maxHeight: '300px', overflowY: 'auto' }}>
               {data.logs?.map((log, i) => (
-                <p key={i} style={{ borderLeft: '2px solid var(--primary)', paddingLeft: '8px', background: 'rgba(255,255,255,0.02)' }}>{log}</p>
+                <div key={i} className="log-entry">
+                  <span className="log-marker"></span> {log}
+                </div>
               ))}
             </div>
           </div>
         </div>
       </main>
+
+      <div className="footer-control" style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}>
+        <button
+          className={`primary-btn ${data.kill_switch ? 'danger' : ''}`}
+          onClick={toggleKillSwitch}
+          style={{ width: '200px' }}
+        >
+          <Power size={18} style={{ marginRight: '8px' }} />
+          {data.kill_switch ? 'RESUME TRADING' : 'EMERGENCY STOP'}
+        </button>
+      </div>
     </div>
   );
 }

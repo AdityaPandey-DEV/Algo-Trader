@@ -27,8 +27,8 @@ SYMBOLS = [
 ]
 
 # Output directory
-OUTPUT_DIR = Path(__file__).parent.parent / "data" / "tv_data"
-BARS_PER_SYMBOL = 20000  # 20K bars = ~260 trading days of 5-min data (covers 2024+2025)
+OUTPUT_DIR = Path(__file__).parent.parent / "data" / "tv_data_15min"
+BARS_PER_SYMBOL = 10000  # 10K bars of 15-min = ~400 days (covers 2024-2025)
 
 
 def fetch_symbol_data(tv: TvDatafeed, symbol: str, bars: int = BARS_PER_SYMBOL) -> list:
@@ -38,7 +38,7 @@ def fetch_symbol_data(tv: TvDatafeed, symbol: str, bars: int = BARS_PER_SYMBOL) 
         df = tv.get_hist(
             symbol=symbol,
             exchange="NSE",
-            interval=Interval.in_5_minute,
+            interval=Interval.in_15_minute,
             n_bars=bars
         )
         

@@ -158,6 +158,11 @@ export function calculatePositionSize(
     const maxShares = Math.floor((capital * RISK_CONFIG.MAX_POSITION_PCT) / entryPrice);
     shares = Math.min(shares, maxShares);
 
+    // If we can't afford even 1 share based on max pct (or capital is 0), return 0
+    if (maxShares < RISK_CONFIG.MIN_POSITION_SIZE) {
+        return 0;
+    }
+
     // Apply minimum
     shares = Math.max(shares, RISK_CONFIG.MIN_POSITION_SIZE);
 
