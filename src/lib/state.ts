@@ -147,13 +147,20 @@ export function isKillSwitchActive(): boolean {
 }
 
 export function setBrokerMode(mode: BrokerMode) {
-    state.broker_mode = mode;
-    state.paper_mode = mode === 'PAPER';
-    addLog(`🔄 Switched to ${mode} broker`);
+    if (state.broker_mode !== mode) {
+        state.broker_mode = mode;
+        state.paper_mode = mode === 'PAPER';
+        // Reset History on switch to prevent jagged charts
+        const startCapital = mode === 'PAPER' ? 100000 : state.broker_balance;
+        state.equity_history = [{ time: new Date().toLocaleTimeString(), equity: startCapital }];
+        addLog(`🔄 Switched to ${mode} broker`);
+    }
 }
 
 export function updateBrokerBalance(balance: number) {
     state.broker_balance = balance;
+    // Sync effective capital so equity curve is accurate
+    state.initial_capital = balance;
 }
 
 export function getBrokerMode(): BrokerMode {
