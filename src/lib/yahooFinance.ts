@@ -1,22 +1,7 @@
 /**
- * Yahoo Finance API Integration using yahoo-finance2 package
- * Provides reliable market data when Upstox/Dhan are unavailable.
+ * Yahoo Finance API Integration using direct HTTP fetch
+ * This approach works reliably in serverless environments like Vercel
  */
-
-import yahooFinance from 'yahoo-finance2';
-
-// Type for Yahoo Finance quote response (subset of fields we use)
-interface YahooFinanceQuote {
-    symbol: string;
-    regularMarketPrice?: number;
-    regularMarketOpen?: number;
-    regularMarketDayHigh?: number;
-    regularMarketDayLow?: number;
-    regularMarketPreviousClose?: number;
-    regularMarketChange?: number;
-    regularMarketChangePercent?: number;
-    regularMarketVolume?: number;
-}
 
 export interface YahooQuote {
     symbol: string;
@@ -36,6 +21,59 @@ function toYahooSymbol(symbol: string): string {
 }
 
 /**
+ * Fetch a single quote from Yahoo Finance using the chart API
+ */
+async function fetchSingleQuote(yahooSymbol: string): Promise<YahooQuote | null> {
+    try {
+        // Use Yahoo's chart API which is more reliable
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1d&interval=1m`;
+
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            console.error(`Yahoo HTTP error for ${yahooSymbol}: ${response.status}`);
+            return null;
+        }
+
+        const data = await response.json();
+
+        if (!data.chart?.result?.[0]) {
+            console.error(`Yahoo no data for ${yahooSymbol}`);
+            return null;
+        }
+
+        const result = data.chart.result[0];
+        const meta = result.meta;
+        const quote = result.indicators?.quote?.[0];
+
+        // Extract the original NSE symbol
+        const nseSymbol = yahooSymbol.replace('.NS', '');
+
+        return {
+            symbol: nseSymbol,
+            lastPrice: meta.regularMarketPrice || 0,
+            open: meta.regularMarketDayOpen || meta.previousClose || 0,
+            high: meta.regularMarketDayHigh || meta.regularMarketPrice || 0,
+            low: meta.regularMarketDayLow || meta.regularMarketPrice || 0,
+            close: meta.previousClose || 0,
+            change: (meta.regularMarketPrice || 0) - (meta.previousClose || 0),
+            changePercent: meta.previousClose
+                ? ((meta.regularMarketPrice - meta.previousClose) / meta.previousClose) * 100
+                : 0,
+            volume: meta.regularMarketVolume || 0
+        };
+    } catch (error) {
+        console.error(`Yahoo Finance error for ${yahooSymbol}:`, error);
+        return null;
+    }
+}
+
+/**
  * Fetch quotes from Yahoo Finance for a list of NSE symbols
  */
 export async function fetchYahooQuotes(symbols: string[]): Promise<Record<string, YahooQuote>> {
@@ -46,40 +84,24 @@ export async function fetchYahooQuotes(symbols: string[]): Promise<Record<string
     try {
         const yahooSymbols = symbols.map(toYahooSymbol);
 
-        // Use quote for each symbol
-        const quotePromises = yahooSymbols.map(async (yahooSymbol): Promise<YahooFinanceQuote | null> => {
-            try {
-                // yahoo-finance2 v3 uses default export directly
-                const quote = await yahooFinance.quote(yahooSymbol) as YahooFinanceQuote;
-                return quote;
-            } catch (e) {
-                console.error(`Yahoo Finance error for ${yahooSymbol}:`, e);
-                return null;
-            }
-        });
-
+        // Fetch all quotes in parallel
+        const quotePromises = yahooSymbols.map(fetchSingleQuote);
         const quotes = await Promise.all(quotePromises);
 
         for (const quote of quotes) {
-            if (!quote || !quote.symbol) continue;
-
-            // Extract the original NSE symbol from Yahoo format
-            const nseSymbol = quote.symbol.replace('.NS', '');
-
-            result[nseSymbol] = {
-                symbol: nseSymbol,
-                lastPrice: quote.regularMarketPrice || 0,
-                open: quote.regularMarketOpen || 0,
-                high: quote.regularMarketDayHigh || 0,
-                low: quote.regularMarketDayLow || 0,
-                close: quote.regularMarketPreviousClose || 0,
-                change: quote.regularMarketChange || 0,
-                changePercent: quote.regularMarketChangePercent || 0,
-                volume: quote.regularMarketVolume || 0
-            };
+            if (quote) {
+                result[quote.symbol] = quote;
+            }
         }
 
         console.log(`✅ Yahoo Finance: Fetched ${Object.keys(result).length}/${symbols.length} quotes`);
+
+        // Log first price for debugging
+        if (Object.keys(result).length > 0) {
+            const firstSymbol = Object.keys(result)[0];
+            console.log(`📊 Sample: ${firstSymbol} = ₹${result[firstSymbol].lastPrice}`);
+        }
+
         return result;
     } catch (error) {
         console.error('Yahoo Finance fetch error:', error);
