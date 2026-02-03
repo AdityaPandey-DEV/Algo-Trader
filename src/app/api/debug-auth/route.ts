@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { loadToken, hasToken } from '@/lib/redis';
 import { isUpstoxAuthenticatedAsync } from '@/lib/upstoxApi';
+import { isDhanConfigured, getBalance as getDhanBalance } from '@/lib/dhanApi';
 
 export async function GET() {
     try {
@@ -34,8 +35,28 @@ export async function GET() {
             UPSTOX_REDIRECT_URI: process.env.UPSTOX_REDIRECT_URI || 'Not set (using default)'
         };
 
+        // Test Dhan API
+        const dhanConfigured = isDhanConfigured();
+        let dhanBalance = null;
+        let dhanError = null;
+
+        if (dhanConfigured) {
+            try {
+                dhanBalance = await getDhanBalance();
+            } catch (e) {
+                dhanError = String(e);
+            }
+        }
+
         return NextResponse.json({
             status: 'debug',
+            dhan: {
+                configured: dhanConfigured,
+                clientIdSet: process.env.DHAN_CLIENT_ID ? '✅ Set' : '❌ Not set',
+                accessTokenSet: process.env.DHAN_ACCESS_TOKEN ? '✅ Set' : '❌ Not set',
+                balance: dhanBalance,
+                error: dhanError
+            },
             redis: {
                 hasToken: hasRedisToken,
                 tokenPreview: redisToken ? redisToken.substring(0, 15) + '...' : null,
