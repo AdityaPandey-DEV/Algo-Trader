@@ -308,13 +308,13 @@ export default function Dashboard() {
                 <AreaChart data={data.equity_history && data.equity_history.length > 0 ? data.equity_history : [{ time: 'Now', equity: data.initial_capital }]}>
                   <defs>
                     <linearGradient id="colorEquity" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#00B386" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#00B386" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="time" hide={true} />
-                  <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #1e293b' }} itemStyle={{ color: '#fff' }} />
-                  <Area type="monotone" dataKey="equity" stroke="#6366f1" fillOpacity={1} fill="url(#colorEquity)" strokeWidth={2} />
+                  <Tooltip contentStyle={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} itemStyle={{ color: '#44475B' }} />
+                  <Area type="monotone" dataKey="equity" stroke="#00B386" fillOpacity={1} fill="url(#colorEquity)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -343,18 +343,49 @@ export default function Dashboard() {
             </table>
           </div>
 
+          {/* V2 SWING ENGINE SETUPS */}
+          <div className="glass-card mt-4">
+            <h3 className="section-title"><TrendingUp size={18} /> V2 Swing Engine Setups</h3>
+            <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid var(--glass-border)', borderRadius: '8px', background: 'var(--background-secondary)' }}>
+              <table className="position-table" style={{ margin: 0 }}>
+                <thead style={{ position: 'sticky', top: 0, background: 'var(--background)', zIndex: 1 }}>
+                  <tr><th>Symbol</th><th>LTP</th><th>Entry</th><th>Target</th><th>Stop</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  {/* Show ETFs and swing candidates */}
+                  {['GOLDBEES', 'SILVERBEES', 'NIFTYBEES', 'BANKBEES', 'LIQUIDBEES'].map((symbol, i) => {
+                    const quote = data.quotes?.[symbol];
+                    return (
+                      <tr key={`swing-${symbol}-${i}`}>
+                        <td className="font-bold">{symbol}</td>
+                        <td>₹{quote?.close?.toFixed(2) || '--'}</td>
+                        <td style={{ color: 'var(--success)' }}>--</td>
+                        <td style={{ color: 'var(--success)' }}>--</td>
+                        <td style={{ color: 'var(--danger)' }}>--</td>
+                        <td><span className="badge-status scanning">Scanning</span></td>
+                      </tr>
+                    );
+                  })}
+                  {(!data.quotes || Object.keys(data.quotes).length === 0) && (
+                    <tr><td colSpan={6} className="text-center text-muted" style={{ padding: '2rem' }}>Waiting for market data...</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           {/* RESTORED: STRATEGIC PLANNING (V3 Opportunity Map) */}
           <div className="glass-card mt-4">
             <h3 className="section-title"><Zap size={18} /> V3 Intraday Scanners</h3>
             <div className="split-tables">
               {/* LONG */}
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <TrendingUp size={14} /> BULLISH ZONES
                 </p>
-                <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid var(--glass-border)', borderRadius: '6px', background: 'rgba(0,0,0,0.2)' }}>
+                <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid var(--glass-border)', borderRadius: '8px', background: 'var(--background-secondary)' }}>
                   <table className="position-table" style={{ margin: 0 }}>
-                    <thead style={{ position: 'sticky', top: 0, background: '#0f172a', zIndex: 1 }}>
+                    <thead style={{ position: 'sticky', top: 0, background: 'var(--background)', zIndex: 1 }}>
                       <tr><th>Symbol</th><th>LTP</th><th>Trigger</th><th>Target</th></tr>
                     </thead>
                     <tbody>
@@ -363,8 +394,8 @@ export default function Dashboard() {
                           <tr key={`${trade.symbol}-LONG-${i}`}>
                             <td className="font-bold">{trade.symbol}</td>
                             <td className="text-muted">₹{trade.current?.toFixed(2) || '--'}</td>
-                            <td style={{ color: '#10b981', fontWeight: 600 }}>₹{trade.entry}</td>
-                            <td style={{ color: '#34d399', fontSize: '0.75rem' }}>{trade.target}</td>
+                            <td style={{ color: 'var(--success)', fontWeight: 600 }}>₹{trade.entry}</td>
+                            <td style={{ color: 'var(--success)', fontSize: '0.75rem' }}>{trade.target}</td>
                           </tr>
                         ))) : (
                         <tr><td colSpan={4} className="text-center text-muted" style={{ padding: '2rem' }}>No bullish setups detected</td></tr>
@@ -376,12 +407,12 @@ export default function Dashboard() {
 
               {/* SHORT */}
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <TrendingUp size={14} style={{ transform: 'rotate(90deg)' }} /> BEARISH ZONES
                 </p>
-                <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid var(--glass-border)', borderRadius: '6px', background: 'rgba(0,0,0,0.2)' }}>
+                <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid var(--glass-border)', borderRadius: '8px', background: 'var(--background-secondary)' }}>
                   <table className="position-table" style={{ margin: 0 }}>
-                    <thead style={{ position: 'sticky', top: 0, background: '#0f172a', zIndex: 1 }}>
+                    <thead style={{ position: 'sticky', top: 0, background: 'var(--background)', zIndex: 1 }}>
                       <tr><th>Symbol</th><th>LTP</th><th>Trigger</th><th>Target</th></tr>
                     </thead>
                     <tbody>
@@ -390,8 +421,8 @@ export default function Dashboard() {
                           <tr key={`${trade.symbol}-SHORT-${i}`}>
                             <td className="font-bold">{trade.symbol}</td>
                             <td className="text-muted">₹{trade.current?.toFixed(2) || '--'}</td>
-                            <td style={{ color: '#ef4444', fontWeight: 600 }}>₹{trade.entry}</td>
-                            <td style={{ color: '#34d399', fontSize: '0.75rem' }}>{trade.target}</td>
+                            <td style={{ color: 'var(--danger)', fontWeight: 600 }}>₹{trade.entry}</td>
+                            <td style={{ color: 'var(--success)', fontSize: '0.75rem' }}>{trade.target}</td>
                           </tr>
                         ))) : (
                         <tr><td colSpan={4} className="text-center text-muted" style={{ padding: '2rem' }}>No bearish setups detected</td></tr>

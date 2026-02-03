@@ -775,9 +775,31 @@ button.danger {
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 4px;
-  background: #1e293b;
-  color: #94a3b8;
-  border: 1px solid #334155;
+  background: var(--background-secondary);
+  color: var(--foreground-muted);
+  border: 1px solid var(--glass-border);
+}
+
+.badge-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+}
+
+.badge-status.scanning {
+  background: rgba(83, 103, 255, 0.1);
+  color: #5367FF;
+}
+
+.badge-status.ready {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.badge-status.triggered {
+  background: rgba(247, 147, 26, 0.1);
+  color: #F7931A;
 }
 
 /* FOOTER BUTTON */
