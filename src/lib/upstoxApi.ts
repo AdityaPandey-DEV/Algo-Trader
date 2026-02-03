@@ -18,7 +18,7 @@ let redisCheckDone = false;
 /**
  * Load token from Redis first, then file fallback
  */
-async function loadTokenAsync(): Promise<void> {
+export async function loadTokenAsync(): Promise<void> {
     if (accessToken) return; // Already in memory
 
     // Try Redis first
@@ -325,19 +325,60 @@ export async function fetchUpstoxFullQuotes(symbols: string[]) {
 }
 
 /**
- * Fetch Upstox Account Balance
+ * Fetch Uptox Account Balance
  */
 export async function getUpstoxBalance(): Promise<number | null> {
-    await loadTokenAsync();
-
-    if (!accessToken) {
-        console.warn('No Upstox token for balance fetch');
+    if (!await isUpstoxAuthenticatedAsync()) {
         return null;
     }
 
     try {
-        const url = 'https://api.upstox.com/v2/user/get-funds-and-margin';
+        const response = await fetch('https://api.upstox.com/v2/user/profile/funds', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Accept': 'application/json'
+            }
+        });
 
+        if (!response.ok) {
+            console.error('Upstox balance fetch failed:', response.status);
+            return null;
+        }
+
+        const data = await response.json();
+        // Return available cash for trading
+        return data.data?.equity?.available_margin || 0;
+    } catch (error) {
+        console.error('Error fetching Upstox balance:', error);
+        return null;
+    }
+}
+
+/**
+ * Fetch Historical Candles (1minute)
+ * @param symbol Trading symbol (e.g., RELIANCE)
+ * @param fromDate ISO Date string (YYYY-MM-DD)
+ * @param toDate ISO Date string (YYYY-MM-DD)
+ */
+export async function fetchHistoricalCandles(symbol: string, fromDate: string, toDate: string): Promise<any[]> {
+    if (!await isUpstoxAuthenticatedAsync()) {
+        console.error('Upstox not authenticated');
+        return [];
+    }
+
+    const isin = ISIN_MAP[symbol];
+    if (!isin) {
+        console.error(`No ISIN found for ${symbol}`);
+        return [];
+    }
+
+    const instrumentKey = `NSE_EQ|${isin}`;
+    const interval = '1minute';
+    // Upstox API format: /historical-candle/{instrumentKey}/{interval}/{to_date}/{from_date}
+
+    const url = `https://api.upstox.com/v2/historical-candle/${instrumentKey}/${interval}/${toDate}/${fromDate}`;
+
+    try {
         const response = await fetch(url, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -346,23 +387,30 @@ export async function getUpstoxBalance(): Promise<number | null> {
         });
 
         if (!response.ok) {
-            console.error('Upstox balance error:', response.statusText);
-            return null;
+            // console.error(`Upstox history fetch failed for ${symbol}:`, response.status);
+            return [];
         }
 
         const json = await response.json();
 
-        // Extract available margin from equity segment
-        if (json.data?.equity) {
-            const equity = json.data.equity;
-            const availableBalance = equity.available_margin || equity.used_margin || 0;
-            console.log('✅ Upstox Balance:', availableBalance);
-            return availableBalance;
+
+
+        if (json.status === 'success' && json.data && Array.isArray(json.data.candles)) {
+            // Data format: [timestamp, open, high, low, close, volume, oi]
+            return json.data.candles.map((candle: any[]) => ({
+                time: candle[0],
+                open: candle[1],
+                high: candle[2],
+                low: candle[3],
+                close: candle[4],
+                volume: candle[5]
+            })).reverse(); // Sort chronological
         }
 
-        return null;
+        console.warn(`⚠️ Upstox History Unexpected Format (${symbol}):`, JSON.stringify(json).substring(0, 200));
+        return [];
     } catch (error) {
-        console.error('Error fetching Upstox balance:', error);
-        return null;
+        console.error(`Error fetching Upstox history for ${symbol}:`, error);
+        return [];
     }
 }

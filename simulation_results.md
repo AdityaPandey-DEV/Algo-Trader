@@ -1,0 +1,34 @@
+# 10-Day Historical Simulation Report
+
+**Date:** 2/3/2026, 8:35:21 PM
+**Symbols:** RELIANCE, HDFCBANK, INFY, TCS, ICICIBANK
+
+## Performance Summary
+| Metric | Value |
+|---|---|
+| Total Trades | 125 |
+| Win Rate | 48.8% |
+
+## Trade Log (Last 20)
+| Symbol | Date | Side | Entry | Exit | PnL | Reason |
+|---|---|---|---|---|---|---|
+| ICICIBANK | 1/21/2026, 3:27:00 PM | LONG | 1346.30 | 1346.70 | 2.80 | EOD |
+| ICICIBANK | 1/22/2026, 9:18:00 AM | LONG | 1352.20 | 1338.68 | -94.65 | Stop Loss |
+| ICICIBANK | 1/22/2026, 11:49:00 AM | LONG | 1339.50 | 1345.70 | 43.40 | EOD |
+| ICICIBANK | 1/23/2026, 9:23:00 AM | LONG | 1341.40 | 1346.40 | 35.00 | EOD |
+| ICICIBANK | 1/23/2026, 3:24:00 PM | LONG | 1341.60 | 1342.00 | 2.80 | EOD |
+| ICICIBANK | 1/27/2026, 9:15:00 AM | LONG | 1349.70 | 1336.20 | -94.48 | Stop Loss |
+| ICICIBANK | 1/27/2026, 9:32:00 AM | LONG | 1332.10 | 1358.74 | 186.49 | Target |
+| ICICIBANK | 1/27/2026, 2:51:00 PM | LONG | 1361.50 | 1360.30 | -8.40 | EOD |
+| ICICIBANK | 1/27/2026, 3:16:00 PM | LONG | 1362.10 | 1365.30 | 22.40 | EOD |
+| ICICIBANK | 1/27/2026, 3:22:00 PM | LONG | 1365.50 | 1364.50 | -7.00 | EOD |
+| ICICIBANK | 1/27/2026, 3:24:00 PM | LONG | 1365.60 | 1368.40 | 19.60 | EOD |
+| ICICIBANK | 1/28/2026, 9:15:00 AM | LONG | 1374.50 | 1367.90 | -46.20 | EOD |
+| ICICIBANK | 1/29/2026, 9:23:00 AM | LONG | 1357.20 | 1384.34 | 190.01 | Target |
+| ICICIBANK | 1/29/2026, 2:38:00 PM | LONG | 1385.50 | 1383.90 | -11.20 | EOD |
+| ICICIBANK | 1/30/2026, 9:21:00 AM | LONG | 1379.50 | 1365.70 | -96.57 | Stop Loss |
+| ICICIBANK | 1/30/2026, 11:13:00 AM | LONG | 1365.50 | 1356.90 | -60.20 | EOD |
+| ICICIBANK | 2/1/2026, 9:45:00 AM | LONG | 1351.00 | 1337.49 | -94.57 | Stop Loss |
+| ICICIBANK | 2/1/2026, 2:39:00 PM | LONG | 1348.60 | 1335.11 | -94.40 | Stop Loss |
+| ICICIBANK | 2/1/2026, 3:23:00 PM | LONG | 1332.30 | 1333.40 | 7.70 | EOD |
+| ICICIBANK | 2/2/2026, 9:15:00 AM | LONG | 1337.30 | 1353.00 | 109.90 | EOD |
