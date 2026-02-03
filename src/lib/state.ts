@@ -71,7 +71,11 @@ const initialState: TradingState = {
     system_state: 'IDLE',
     positions: [],
     planned_trades: [],
-    watchlist: ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'LT', 'AXISBANK', 'BHARTIARTL', 'ITC'],
+    watchlist: [
+        'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK',
+        'SBIN', 'LT', 'AXISBANK', 'BHARTIARTL', 'ITC',
+        'GOLDBEES', 'SILVERBEES', 'NIFTYBEES', 'BANKBEES', 'LIQUIDBEES'
+    ],
     logs: ['[SYSTEM] Algo Trader Engine initialized.'],
     equity_history: [{ time: new Date().toLocaleTimeString(), equity: 100000 }]
 };

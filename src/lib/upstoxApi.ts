@@ -196,7 +196,13 @@ const ISIN_MAP: Record<string, string> = {
     'WIPRO': 'INE075A01022',
     'HCLTECH': 'INE860A01027',
     'ULTRACEMCO': 'INE481G01011',
-    'SUNPHARMA': 'INE044A01036'
+    'SUNPHARMA': 'INE044A01036',
+    // ETFs
+    'GOLDBEES': 'INF204KB17I5',
+    'SILVERBEES': 'INF204KB14I2',
+    'NIFTYBEES': 'INF204KB14I1',
+    'BANKBEES': 'INF204KB15I9',
+    'LIQUIDBEES': 'INF204KB19I1'
 };
 
 export async function fetchUpstoxQuotes(symbols: string[]) {
