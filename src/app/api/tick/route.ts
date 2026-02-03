@@ -155,21 +155,26 @@ export async function POST() {
                 marketData = generateMockData(CONFIG.WATCHLIST);
                 dataSource = 'MOCK_FALLBACK';
             }
-        } else if (marketOpen && process.env.UPSTOX_API_KEY) {
-            // UPSTOX LIVE MODE
-            const upstoxData = await fetchUpstoxQuotes(CONFIG.WATCHLIST);
-            if (Object.keys(upstoxData).length > 0) {
-                marketData = upstoxData;
-                dataSource = 'UPSTOX_LIVE';
-            } else {
-                // Determine if we need to login
-                addLog('⚠️ Upstox data empty. Login might be required.');
-                // Fallback
+        } else if (process.env.UPSTOX_API_KEY) {
+            // UPSTOX LIVE DATA (Always try to fetch if configured, even if market closed)
+            // This ensures we show Real LTP instead of Mock data
+            try {
+                const upstoxData = await fetchUpstoxQuotes(CONFIG.WATCHLIST);
+                if (Object.keys(upstoxData).length > 0) {
+                    marketData = upstoxData;
+                    dataSource = marketOpen ? 'UPSTOX_LIVE' : 'UPSTOX_LTP (MARKET CLOSED)';
+                } else {
+                    // Only mock if we really have no data
+                    marketData = generateMockData(CONFIG.WATCHLIST);
+                    dataSource = 'MOCK_FALLBACK';
+                }
+            } catch (e) {
+                console.error("Upstox fetch error", e);
                 marketData = generateMockData(CONFIG.WATCHLIST);
                 dataSource = 'MOCK_FALLBACK';
             }
         } else {
-            // Market closed or No Broker: Use mock data
+            // No Broker: Use mock data
             marketData = generateMockData(CONFIG.WATCHLIST);
             dataSource = marketOpen ? 'MOCK_NO_BROKER' : 'MOCK_MARKET_CLOSED';
         }
