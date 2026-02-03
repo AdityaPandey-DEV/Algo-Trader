@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   AreaChart, Area, XAxis, Tooltip, ResponsiveContainer
 } from 'recharts';
@@ -54,13 +54,23 @@ export default function Dashboard() {
   const [editingBalance, setEditingBalance] = useState(false);
   const [balanceInput, setBalanceInput] = useState("");
 
+  // Track last user action to prevent race conditions
+  const lastBrokerChange = useRef(0);
+
   // Fetch State from API
   const fetchState = useCallback(async () => {
     try {
       const res = await fetch('/api/state');
       if (res.ok) {
         const state = await res.json();
-        setData(state);
+
+        // Race Condition Guard: Ignore server server broker_mode if user changed it recently (< 3s)
+        if (Date.now() - lastBrokerChange.current < 3000) {
+          // Keep local broker mode, update everything else
+          setData(prev => prev ? { ...state, broker_mode: prev.broker_mode } : state);
+        } else {
+          setData(state);
+        }
       }
     } catch (e) {
       console.error("Failed to fetch state:", e);
@@ -91,12 +101,25 @@ export default function Dashboard() {
   };
 
   const changeBroker = async (broker: BrokerMode) => {
+    // 1. Update Timestamp (Race Condition Guard)
+    lastBrokerChange.current = Date.now();
+
+    // 2. Optimistic Update (Instant Switch)
+    setShowBrokerDropdown(false);
+    setData(prev => prev ? {
+      ...prev,
+      broker_mode: broker,
+      // Optional: Reset balance for visual feedback or keep old until fetch 
+    } : null);
+
+    // 3. API Call
     await fetch('/api/broker', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ broker })
     });
-    setShowBrokerDropdown(false);
+
+    // 4. Fetch real data (will be filtered by guard if too fast, but that's fine)
     fetchState();
   };
 
