@@ -1,10 +1,56 @@
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 const UPSTOX_API_KEY = process.env.UPSTOX_API_KEY!;
 const UPSTOX_API_SECRET = process.env.UPSTOX_API_SECRET!;
 const UPSTOX_REDIRECT_URI = process.env.UPSTOX_REDIRECT_URI || 'http://localhost:3000/api/upstox/callback';
 
-// Singleton instance
+// Token persistence path (works on Vercel /tmp)
+const TOKEN_FILE_PATH = path.join('/tmp', 'upstox_token.json');
+
+// In-memory cache (fast access)
 let accessToken: string | null = null;
+let tokenExpiry: number | null = null;
+
+/**
+ * Load token from file if not in memory
+ */
+function loadTokenFromFile(): void {
+    if (accessToken) return; // Already in memory
+
+    try {
+        if (fs.existsSync(TOKEN_FILE_PATH)) {
+            const data = JSON.parse(fs.readFileSync(TOKEN_FILE_PATH, 'utf-8'));
+            if (data.token && data.expiry && Date.now() < data.expiry) {
+                accessToken = data.token;
+                tokenExpiry = data.expiry;
+                console.log('✅ Loaded Upstox token from file storage');
+            } else {
+                // Token expired, clean up
+                fs.unlinkSync(TOKEN_FILE_PATH);
+            }
+        }
+    } catch (e) {
+        console.error('Failed to load token from file:', e);
+    }
+}
+
+/**
+ * Save token to file for persistence
+ */
+function saveTokenToFile(token: string): void {
+    try {
+        // Token valid for 24 hours (Upstox standard)
+        const expiry = Date.now() + 24 * 60 * 60 * 1000;
+        fs.writeFileSync(TOKEN_FILE_PATH, JSON.stringify({ token, expiry }));
+        accessToken = token;
+        tokenExpiry = expiry;
+        console.log('💾 Saved Upstox token to file storage');
+    } catch (e) {
+        console.error('Failed to save token to file:', e);
+    }
+}
 
 /**
  * Get Login URL for OAuth2
@@ -51,9 +97,10 @@ export async function handleUpstoxCallback(code: string): Promise<string> {
         }
 
         if (json.access_token) {
-            accessToken = json.access_token;
-            console.log('✅ Upstox Login Successful. Token:', accessToken!.substring(0, 10) + '...');
-            return accessToken!;
+            // Save to both memory and file
+            saveTokenToFile(json.access_token);
+            console.log('✅ Upstox Login Successful. Token:', json.access_token.substring(0, 10) + '...');
+            return json.access_token;
         } else {
             throw new Error('No access_token in response');
         }
@@ -68,6 +115,7 @@ export async function handleUpstoxCallback(code: string): Promise<string> {
  * Check if we have a valid Upstox session
  */
 export function isUpstoxAuthenticated(): boolean {
+    loadTokenFromFile(); // Try to load from file if not in memory
     return accessToken !== null;
 }
 
@@ -75,6 +123,9 @@ export function isUpstoxAuthenticated(): boolean {
  * Fetch LTP for a list of symbols
  */
 export async function fetchUpstoxQuotes(symbols: string[]) {
+    // Try to load token from file if not in memory (cold start recovery)
+    loadTokenFromFile();
+
     if (!accessToken) {
         // console.warn('⚠️ No Upstox access token. Login required.');
         return {};
