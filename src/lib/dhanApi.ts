@@ -432,10 +432,15 @@ export async function getBalance(): Promise<{ available: number; utilized: numbe
 
         if (response.ok) {
             const data = await response.json();
+            console.log('📊 Dhan fundlimit response:', JSON.stringify(data));
+
+            // Dhan API returns availableBalance and utilizedAmount
             return {
-                available: data.availableFund || 0,
-                utilized: data.utilizedFund || 0
+                available: data.availableBalance || data.availableFund || data.sodLimit || 0,
+                utilized: data.utilizedAmount || data.utilizedFund || 0
             };
+        } else {
+            console.error('Dhan fundlimit error:', response.status, await response.text());
         }
 
         return null;
