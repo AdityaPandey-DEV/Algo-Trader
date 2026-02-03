@@ -17,9 +17,14 @@ export async function GET() {
 
     // Determine data source indicator
     let dataSource = 'MOCK';
+    const hasUpstoxToken = await isUpstoxAuthenticatedAsync();
+
     if (dhanConfigured) {
         // Always show Dhan connection if configured, regardless of market hours
         dataSource = state.paper_mode ? 'PAPER' : 'DHAN_LIVE';
+    } else if (hasUpstoxToken) {
+        // Upstox is connected (even if market closed)
+        dataSource = state.paper_mode ? 'UPSTOX_PAPER' : 'UPSTOX_LIVE';
     }
 
     // Fetch real balance from Dhan in LIVE mode (even when market closed!)
