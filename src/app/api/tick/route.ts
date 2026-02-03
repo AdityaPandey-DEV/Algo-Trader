@@ -171,9 +171,10 @@ export async function POST() {
                         marketData = transformYahooToOHLCV(yahooData);
                         dataSource = 'YAHOO_FINANCE';
                     } else {
-                        // Last resort: mock data
-                        marketData = generateMockData(CONFIG.WATCHLIST);
-                        dataSource = 'MOCK_FALLBACK';
+                        // NO MOCK DATA - Return empty and indicate no data available
+                        marketData = {};
+                        dataSource = 'NO_DATA';
+                        addLog('⚠️ CRITICAL: No market data available - Trading disabled');
                     }
                 }
             } catch (e) {
@@ -185,13 +186,15 @@ export async function POST() {
                         marketData = transformYahooToOHLCV(yahooData);
                         dataSource = 'YAHOO_FINANCE';
                     } else {
-                        marketData = generateMockData(CONFIG.WATCHLIST);
-                        dataSource = 'MOCK_FALLBACK';
+                        marketData = {};
+                        dataSource = 'NO_DATA';
+                        addLog('⚠️ CRITICAL: No market data available - Trading disabled');
                     }
                 } catch (yahooError) {
                     console.error("Yahoo Finance fetch error", yahooError);
-                    marketData = generateMockData(CONFIG.WATCHLIST);
-                    dataSource = 'MOCK_FALLBACK';
+                    marketData = {};
+                    dataSource = 'NO_DATA';
+                    addLog('⚠️ CRITICAL: All data sources failed - Trading disabled');
                 }
             }
         } else {
@@ -202,13 +205,15 @@ export async function POST() {
                     marketData = transformYahooToOHLCV(yahooData);
                     dataSource = 'YAHOO_FINANCE';
                 } else {
-                    marketData = generateMockData(CONFIG.WATCHLIST);
-                    dataSource = marketOpen ? 'MOCK_NO_BROKER' : 'MOCK_MARKET_CLOSED';
+                    marketData = {};
+                    dataSource = 'NO_DATA';
+                    addLog('⚠️ CRITICAL: No market data available - Trading disabled');
                 }
             } catch (e) {
                 console.error("Yahoo Finance fetch error", e);
-                marketData = generateMockData(CONFIG.WATCHLIST);
-                dataSource = marketOpen ? 'MOCK_NO_BROKER' : 'MOCK_MARKET_CLOSED';
+                marketData = {};
+                dataSource = 'NO_DATA';
+                addLog('⚠️ CRITICAL: Yahoo Finance failed - Trading disabled');
             }
         }
 

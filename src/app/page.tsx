@@ -139,6 +139,32 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* UPSTOX CONNECTION STATUS BANNER */}
+      {data.data_source && !data.data_source.includes('UPSTOX') && data.data_source !== 'NO_DATA' && (
+        <div className="upstox-banner">
+          <span className="banner-icon">⚠️</span>
+          <span className="banner-text">
+            Upstox Not Connected — Using {data.data_source.replace('_', ' ')} data
+          </span>
+          <a href="/api/upstox/login" className="banner-link">
+            🔗 Click to Login
+          </a>
+        </div>
+      )}
+
+      {/* CRITICAL: NO DATA AVAILABLE BANNER */}
+      {data.data_source === 'NO_DATA' && (
+        <div className="nodata-banner">
+          <span className="banner-icon">🚨</span>
+          <span className="banner-text">
+            DATA UNAVAILABLE — Cannot Trade
+          </span>
+          <a href="/api/upstox/login" className="banner-link">
+            🔗 Connect Upstox
+          </a>
+        </div>
+      )}
+
       {/* 2. CAPITAL ALLOCATION BAR */}
       <section className="allocation-section">
         <div className="allocation-bar">
