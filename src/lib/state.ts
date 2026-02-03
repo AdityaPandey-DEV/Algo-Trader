@@ -1,6 +1,5 @@
 // Shared Trading State (Module-Level Singleton)
-// This state persists across API calls within the same serverless instance lifetime.
-// For true persistence across deployments, use Vercel KV or a database.
+// Refactored for Per-Broker Data Isolation ("Virtual Environments")
 
 import { MarketRegime } from './regimeEngine';
 import { SystemState } from './stateMachine';
@@ -25,74 +24,116 @@ export interface PlannedTrade {
 
 export type BrokerMode = 'PAPER' | 'DHAN' | 'UPSTOX';
 
-export interface TradingState {
-    // Core metrics
+// 1. Broker-Specific State (The "Virtual Environment")
+export interface BrokerState {
     pnl: number;
     risk_consumed: number;
     max_drawdown: number;
+    broker_balance: number;
+    initial_capital: number;
+    positions: Position[];
+    planned_trades: PlannedTrade[];
+    equity_history: Array<{ time: string; equity: number }>;
+    kill_switch: boolean;
+}
 
-    // Regime tracking
+// 2. Global State (Shared across all brokers)
+interface InternalState {
+    broker_mode: BrokerMode;
     regime: MarketRegime | string;
     tsd_count: number;
-
-    // Broker & Mode controls
-    broker_mode: BrokerMode;
-    broker_balance: number;
-    paper_mode: boolean; // Deprecated - use broker_mode === 'PAPER'
-    initial_capital: number;
-    kill_switch: boolean;
-
-    // Current activity
+    watchlist: string[];
+    logs: string[];
     current_symbol: string;
     system_state: SystemState;
 
-    // Positions & trades
-    positions: Position[];
-    planned_trades: PlannedTrade[];
-    watchlist: string[];
-
-    // Logging
-    logs: string[];
-    equity_history: Array<{ time: string; equity: number }>;
+    // The Isolated Environments
+    brokers: Record<BrokerMode, BrokerState>;
 }
 
-const initialState: TradingState = {
+// 3. Public Interface (Backward Compatible View)
+export interface TradingState extends BrokerState {
+    broker_mode: BrokerMode;
+    regime: MarketRegime | string;
+    tsd_count: number;
+    watchlist: string[];
+    logs: string[];
+    current_symbol: string;
+    system_state: SystemState;
+    paper_mode: boolean; // Computed
+
+    // Expose raw brokers for advanced frontend features
+    all_brokers?: Record<BrokerMode, BrokerState>;
+}
+
+const defaultBrokerState: BrokerState = {
     pnl: 0,
     risk_consumed: 0,
     max_drawdown: 1.5,
-    regime: 'RANGE_NEUTRAL',
-    tsd_count: 0,
-    broker_mode: 'PAPER',
-    broker_balance: 100000,
-    paper_mode: true,
-    initial_capital: 100000,
-    kill_switch: false,
-    current_symbol: 'MULTI',
-    system_state: 'IDLE',
+    broker_balance: 0,
+    initial_capital: 0,
     positions: [],
     planned_trades: [],
+    equity_history: [],
+    kill_switch: false
+};
+
+const initialState: InternalState = {
+    broker_mode: 'PAPER',
+    regime: 'RANGE_NEUTRAL',
+    tsd_count: 0,
+    current_symbol: 'MULTI',
+    system_state: 'IDLE',
     watchlist: [
         'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK',
         'SBIN', 'LT', 'AXISBANK', 'BHARTIARTL', 'ITC',
         'GOLDBEES', 'SILVERBEES', 'NIFTYBEES', 'BANKBEES', 'LIQUIDBEES'
     ],
     logs: ['[SYSTEM] Algo Trader Engine initialized.'],
-    equity_history: [{ time: new Date().toLocaleTimeString(), equity: 100000 }]
+    brokers: {
+        PAPER: { ...defaultBrokerState, initial_capital: 100000, broker_balance: 100000, equity_history: [{ time: new Date().toLocaleTimeString(), equity: 100000 }] },
+        DHAN: { ...defaultBrokerState },
+        UPSTOX: { ...defaultBrokerState }
+    }
 };
 
 // Global state reference
-let state: TradingState = { ...initialState };
+let state: InternalState = JSON.parse(JSON.stringify(initialState)); // Deep copy to avoid ref issues
 
+// Computed View for Backward Compatibility
 export function getState(): TradingState {
-    return state;
+    const activeBroker = state.brokers[state.broker_mode];
+    return {
+        ...activeBroker,
+        broker_mode: state.broker_mode,
+        regime: state.regime,
+        tsd_count: state.tsd_count,
+        watchlist: state.watchlist,
+        logs: state.logs,
+        current_symbol: state.current_symbol,
+        system_state: state.system_state,
+        paper_mode: state.broker_mode === 'PAPER',
+        all_brokers: state.brokers
+    };
 }
 
+// Update Functions - Now target the ACTIVE broker
 export function updateState(partial: Partial<TradingState>) {
-    state = { ...state, ...partial };
+    // Separate global props from broker props
+    const globalKeys = ['broker_mode', 'regime', 'tsd_count', 'watchlist', 'logs', 'current_symbol', 'system_state'];
+    const activeBroker = state.brokers[state.broker_mode];
+
+    Object.keys(partial).forEach(key => {
+        if (globalKeys.includes(key)) {
+            (state as any)[key] = (partial as any)[key];
+        } else if (key in activeBroker) {
+            (activeBroker as any)[key] = (partial as any)[key];
+        }
+    });
 }
 
 export function resetState() {
-    state = { ...initialState };
+    state = JSON.parse(JSON.stringify(initialState));
 }
 
 export function addLog(message: string) {
@@ -101,21 +142,22 @@ export function addLog(message: string) {
 }
 
 export function updateEquity() {
-    const equity = state.initial_capital + state.pnl;
-    state.equity_history = [
-        ...state.equity_history.slice(-99),
+    // Updates equity history for the ACTIVE broker only
+    const active = state.brokers[state.broker_mode];
+    const equity = active.initial_capital + active.pnl;
+    active.equity_history = [
+        ...active.equity_history.slice(-99),
         { time: new Date().toLocaleTimeString(), equity }
     ];
 }
 
-// New helper functions for workflow
-
+// Kill Switch is now Per-Broker
 export function setKillSwitch(active: boolean) {
-    state.kill_switch = active;
+    state.brokers[state.broker_mode].kill_switch = active;
     if (active) {
-        addLog('🚨 KILL SWITCH ACTIVATED');
+        addLog(`🚨 KILL SWITCH ACTIVATED (${state.broker_mode})`);
     } else {
-        addLog('✅ Kill switch deactivated');
+        addLog(`✅ Kill switch deactivated (${state.broker_mode})`);
     }
 }
 
@@ -129,40 +171,48 @@ export function setSystemState(systemState: SystemState) {
 }
 
 export function clearPositions() {
-    state.positions = [];
-    state.pnl = 0;
-    state.risk_consumed = 0;
+    const active = state.brokers[state.broker_mode];
+    active.positions = [];
+    active.pnl = 0;
+    active.risk_consumed = 0;
 }
 
 export function getDailyPnL(): number {
-    return state.pnl;
+    return state.brokers[state.broker_mode].pnl;
 }
 
 export function getRiskConsumed(): number {
-    return state.risk_consumed;
+    return state.brokers[state.broker_mode].risk_consumed;
 }
 
 export function isKillSwitchActive(): boolean {
-    return state.kill_switch;
+    return state.brokers[state.broker_mode].kill_switch;
 }
 
 export function setBrokerMode(mode: BrokerMode) {
     if (state.broker_mode !== mode) {
         state.broker_mode = mode;
-        state.paper_mode = mode === 'PAPER';
-        // Reset History on switch to prevent jagged charts
-        const startCapital = mode === 'PAPER' ? 100000 : state.broker_balance;
-        state.equity_history = [{ time: new Date().toLocaleTimeString(), equity: startCapital }];
+        // No need to reset history anymore! Each broker has its own persistent history.
         addLog(`🔄 Switched to ${mode} broker`);
     }
 }
 
 export function updateBrokerBalance(balance: number) {
-    state.broker_balance = balance;
-    // Sync effective capital so equity curve is accurate
-    state.initial_capital = balance;
+    const active = state.brokers[state.broker_mode];
+    active.broker_balance = balance;
+    // Sync initial capital for live brokers to ensure equity curve is accurate
+    // Only necessary if PnL is reset or if we treat balance as starting point
+    if (state.broker_mode !== 'PAPER') {
+        active.initial_capital = balance;
+    }
 }
 
 export function getBrokerMode(): BrokerMode {
     return state.broker_mode;
 }
+
+// Helper to access specific broker state (internal use)
+export function getBrokerState(mode: BrokerMode): BrokerState {
+    return state.brokers[mode];
+}
+
