@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getState, updateState, addLog, updateEquity } from '@/lib/state';
 import { fetchUpstoxQuotes, getUpstoxLoginUrl } from '@/lib/upstoxApi';
 import { generateMockData, getPriorData, updatePriorData, calculateLevels } from '@/lib/mockData';
+import { fetchYahooQuotes, transformYahooToOHLCV } from '@/lib/yahooFinance';
 import { calculatePlannedTrade, generateSignal } from '@/lib/strategy';
 import { CONFIG } from '@/lib/config';
 import { isMarketOpen, getMarketInfo } from '@/lib/marketHours';
@@ -164,19 +165,51 @@ export async function POST() {
                     marketData = upstoxData;
                     dataSource = marketOpen ? 'UPSTOX_LIVE' : 'UPSTOX_LTP (MARKET CLOSED)';
                 } else {
-                    // Only mock if we really have no data
-                    marketData = generateMockData(CONFIG.WATCHLIST);
-                    dataSource = 'MOCK_FALLBACK';
+                    // Upstox failed - try Yahoo Finance as backup
+                    const yahooData = await fetchYahooQuotes(CONFIG.WATCHLIST);
+                    if (Object.keys(yahooData).length > 0) {
+                        marketData = transformYahooToOHLCV(yahooData);
+                        dataSource = 'YAHOO_FINANCE';
+                    } else {
+                        // Last resort: mock data
+                        marketData = generateMockData(CONFIG.WATCHLIST);
+                        dataSource = 'MOCK_FALLBACK';
+                    }
                 }
             } catch (e) {
                 console.error("Upstox fetch error", e);
-                marketData = generateMockData(CONFIG.WATCHLIST);
-                dataSource = 'MOCK_FALLBACK';
+                // Try Yahoo Finance as backup
+                try {
+                    const yahooData = await fetchYahooQuotes(CONFIG.WATCHLIST);
+                    if (Object.keys(yahooData).length > 0) {
+                        marketData = transformYahooToOHLCV(yahooData);
+                        dataSource = 'YAHOO_FINANCE';
+                    } else {
+                        marketData = generateMockData(CONFIG.WATCHLIST);
+                        dataSource = 'MOCK_FALLBACK';
+                    }
+                } catch (yahooError) {
+                    console.error("Yahoo Finance fetch error", yahooError);
+                    marketData = generateMockData(CONFIG.WATCHLIST);
+                    dataSource = 'MOCK_FALLBACK';
+                }
             }
         } else {
-            // No Broker: Use mock data
-            marketData = generateMockData(CONFIG.WATCHLIST);
-            dataSource = marketOpen ? 'MOCK_NO_BROKER' : 'MOCK_MARKET_CLOSED';
+            // No Upstox configured: Try Yahoo Finance first
+            try {
+                const yahooData = await fetchYahooQuotes(CONFIG.WATCHLIST);
+                if (Object.keys(yahooData).length > 0) {
+                    marketData = transformYahooToOHLCV(yahooData);
+                    dataSource = 'YAHOO_FINANCE';
+                } else {
+                    marketData = generateMockData(CONFIG.WATCHLIST);
+                    dataSource = marketOpen ? 'MOCK_NO_BROKER' : 'MOCK_MARKET_CLOSED';
+                }
+            } catch (e) {
+                console.error("Yahoo Finance fetch error", e);
+                marketData = generateMockData(CONFIG.WATCHLIST);
+                dataSource = marketOpen ? 'MOCK_NO_BROKER' : 'MOCK_MARKET_CLOSED';
+            }
         }
 
         // 2. Update historical data for indicators
