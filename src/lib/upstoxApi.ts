@@ -197,6 +197,11 @@ const ISIN_MAP: Record<string, string> = {
     'HCLTECH': 'INE860A01027',
     'ULTRACEMCO': 'INE481G01011',
     'SUNPHARMA': 'INE044A01036',
+    // Missing from original - now added
+    'NESTLEIND': 'INE239A01016',
+    'ADANIENT': 'INE423A01024',
+    'TATASTEEL': 'INE081A01020',
+    'POWERGRID': 'INE752E01010',
     // ETFs - Correct ISINs
     'GOLDBEES': 'INF204KB17I5',
     'SILVERBEES': 'INF204KC1402',
