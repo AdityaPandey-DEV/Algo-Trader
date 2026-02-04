@@ -123,7 +123,7 @@ export function getState(): TradingState {
 // Update Functions - Now target the ACTIVE broker
 export function updateState(partial: Partial<TradingState>) {
     // Separate global props from broker props
-    const globalKeys = ['broker_mode', 'regime', 'tsd_count', 'watchlist', 'current_symbol', 'system_state'];
+    const globalKeys = ['broker_mode', 'regime', 'tsd_count', 'watchlist', 'current_symbol', 'system_state', 'quotes'];
     const activeBroker = state.brokers[state.broker_mode];
 
     Object.keys(partial).forEach(key => {
