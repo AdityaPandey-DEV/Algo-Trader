@@ -62,6 +62,7 @@ export interface TradingState extends BrokerState {
     current_symbol: string;
     system_state: SystemState;
     paper_mode: boolean; // Computed
+    quotes: Record<string, any>; // Market data quotes for dashboard display
 
     // Expose raw brokers for advanced frontend features
     all_brokers?: Record<BrokerMode, BrokerState>;
@@ -114,6 +115,7 @@ export function getState(): TradingState {
         current_symbol: state.current_symbol,
         system_state: state.system_state,
         paper_mode: state.broker_mode === 'PAPER',
+        quotes: (state as any).quotes || {}, // Market data quotes
         all_brokers: state.brokers
     };
 }

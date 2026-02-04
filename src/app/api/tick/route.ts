@@ -499,7 +499,8 @@ export async function POST() {
             positions: displayPositions,
             planned_trades: plannedTrades,
             watchlist: CONFIG.WATCHLIST,
-            current_symbol: CONFIG.WATCHLIST[Math.floor(Math.random() * CONFIG.WATCHLIST.length)]
+            current_symbol: CONFIG.WATCHLIST[Math.floor(Math.random() * CONFIG.WATCHLIST.length)],
+            quotes: marketData // Add market data quotes for dashboard display
         });
 
         // 12. Update equity curve
