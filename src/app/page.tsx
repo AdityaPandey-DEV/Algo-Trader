@@ -97,8 +97,19 @@ export default function Dashboard() {
   }, [fetchState]);
 
   const toggleKillSwitch = async () => {
-    await fetch('/api/killswitch', { method: 'POST' });
-    fetchState();
+    try {
+      const res = await fetch('/api/killswitch', { method: 'POST' });
+      const body = await res.json();
+
+      if (!res.ok || body.status === 'error') {
+        alert(body.message || "Failed to toggle trading status");
+        return;
+      }
+
+      fetchState();
+    } catch (e) {
+      alert("Network error: " + e);
+    }
   };
 
   const changeBroker = async (broker: BrokerMode) => {
