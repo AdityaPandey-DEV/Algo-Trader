@@ -49,7 +49,7 @@ export function generateSignal(
     regime: string
 ): Signal | null {
     // No signals in established trend
-    if (regime === 'REGIME_C') return null;
+    if (regime === 'ESTABLISHED_TREND') return null;
 
     const baseRange = data.high - data.low;
     const priorVolume = priorData?.volume ?? 0;

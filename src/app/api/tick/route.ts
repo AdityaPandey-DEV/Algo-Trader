@@ -326,7 +326,7 @@ export async function POST() {
                 plannedTrades.push(...trades);
 
                 // Check for actionable signals (only during market hours with real data)
-                if (marketOpen && (dataSource.includes('DHAN') || dataSource.includes('UPSTOX')) && regimePermissions.allowMeanReversion) {
+                if (marketOpen && dataSource !== 'NO_DATA' && regimePermissions.allowMeanReversion) {
                     // Run pre-trade quality filters (Upgrades #2, #3, #7)
                     const symbolCandles = historicalData[symbol] || [];
                     const preTradeCheck = runPreTradeChecks(symbolCandles);

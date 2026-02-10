@@ -17,8 +17,8 @@ import { RISK_CONFIG } from './riskEngine';
  * Uses first hour's range vs ATR to determine if market is choppy
  */
 export function shouldSkipToday(candles: OHLCV[]): { skip: boolean; reason: string } {
-    if (candles.length < 20) {
-        return { skip: true, reason: 'Insufficient data for volatility check' };
+    if (candles.length < 5) {
+        return { skip: false, reason: 'Insufficient data, allowing trade' };
     }
 
     // Get ATR (14-period)
@@ -57,7 +57,7 @@ export function shouldSkipToday(candles: OHLCV[]): { skip: boolean; reason: stri
  */
 export function isTrendStrong(candles: OHLCV[], emaPeriod: number = 25): { strong: boolean; slope: number; reason: string } {
     if (candles.length < emaPeriod + 10) {
-        return { strong: false, slope: 0, reason: 'Insufficient data for trend check' };
+        return { strong: true, slope: 0, reason: 'Insufficient data, allowing trade' };
     }
 
     // Current EMA - extract close prices
